@@ -13,7 +13,6 @@ from matplotlib import pyplot as plt
 
 try_raw_path = r'D:\Python\Project\Ref_Data\RAWtestseria-0\20220427_000800_218397_0.raw'
 
-
 # 11030080 = 320*34469 uint8
 # 5515040  = 320*34469 uint16
 
@@ -21,6 +20,19 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):  # parent=None,so the HaiTu_UI is the topmost window
         super(HandleRAW_UI, self).__init__(
             parent)  # the super().__init__() excutes the constructor fo father, then we can use the property of father
+        self.GR_stdev_list = None
+        self.B_stdev_list = None
+        self.R_stdev_list = None
+        self.GB_median_list = None
+        self.GR_median_list = None
+        self.B_median_list = None
+        self.R_median_list = None
+        self.GB_ave_list = None
+        self.GB_stdev_list = None
+        self.GR_ave_list = None
+        self.B_ave_list = None
+        self.R_ave_list = None
+        self.folder_list = None
         self.raw_stdev = None
         self.raw_ave = None
         self.frame_list = None
@@ -47,23 +59,25 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         self.display_stdev.clicked.connect(lambda: HandleRAW_UI.display_stdev(self))
 
     def openFileEvent(self):
-        self.file_path = QFileDialog.getExistingDirectory(None, 'Choose Folder',
-                                                          r'D:\Python\Project\Ref_Data')  # return value is tuple type
-        self.file_list = os.listdir(self.file_path)
         self.raw_file_list = list()
-        for list_loop in range(len(self.file_list)):
-            if '.raw' in self.file_list[list_loop]:
-                self.raw_file_list.append(self.file_list[list_loop])
-        self.textEdit.append(str(self.file_path))
-        self.textEdit.append('\r\n')
-        self.textEdit.append('Ready......')
-        self.textEdit.append('\r\n')
+        self.folder_list = []
+        folder_name_list = []
+        self.file_path = QFileDialog.getExistingDirectory(None, 'Choose Folder',
+                                                          r'D:\PythonProject')  # return value is tuple type
+        for root, dirs, files in os.walk(self.file_path):
+            for dir in dirs:
+                folder_name_list.append(dir)
+                if os.path.join(root, dir):
+                    self.folder_list.append(os.path.join(root, dir))
+        print(self.folder_list)
+
+        self.start_handle()
 
     def start_handle(self):
-        print('Doing......')
+        print('I am Working......')
         self.textEdit.append('Start calculation......')
         time_start = time.time()
-        self.handle_raw()
+        self.handlePathOrFile()
         time_end = time.time()
         # time_take = time_end - time_start
         self.textEdit.append('\r\n')
@@ -72,7 +86,64 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         self.textEdit.append(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         self.textEdit.append('\r\n')
 
-    def handle_raw(self):
+    def handlePathOrFile(self):
+        # get_RGB_Result_list order:
+        # GB_median,B_median,R_median,GR_median,GB_ave,B_ave,R_ave,GR_ave,GB_stdev,B_stdev,R_stdev,GR_stdev
+        self.R_ave_list = []
+        self.B_ave_list = []
+        self.GR_ave_list = []
+        self.GB_ave_list = []
+        self.R_median_list = []
+        self.B_median_list = []
+        self.GR_median_list = []
+        self.GB_median_list = []
+        self.R_stdev_list = []
+        self.B_stdev_list = []
+        self.GR_stdev_list = []
+        self.GB_stdev_list = []
+        get_RGB_Result_list = []
+        for folder in self.folder_list:
+            # print(os.listdir(folder))
+            raw_file_list = []
+            self.file_list = os.listdir(folder)
+            for list_loop in range(len(self.file_list)):
+                if '.raw' in self.file_list[list_loop]:
+                    self.raw_file_list.append(self.file_list[list_loop])
+                    raw_file_list.append(self.file_list[list_loop])
+            self.textEdit.append(str(folder))
+            self.textEdit.append('\r\n')
+            self.textEdit.append('Ready......')
+            self.textEdit.append('\r\n')
+
+            get_RGB_Result_list = self.handle_raw(folder, raw_file_list)
+            self.GB_median_list.append(get_RGB_Result_list[0])
+            self.B_median_list.append(get_RGB_Result_list[1])
+            self.R_median_list.append(get_RGB_Result_list[2])
+            self.GR_median_list.append(get_RGB_Result_list[3])
+            self.GB_ave_list.append(get_RGB_Result_list[4])
+            self.B_ave_list.append(get_RGB_Result_list[5])
+            self.R_ave_list.append(get_RGB_Result_list[6])
+            self.GR_ave_list.append(get_RGB_Result_list[7])
+            self.GB_stdev_list.append(get_RGB_Result_list[8])
+            self.B_stdev_list.append(get_RGB_Result_list[9])
+            self.R_stdev_list.append(get_RGB_Result_list[10])
+            self.GR_stdev_list.append(get_RGB_Result_list[11])
+
+        # print(self.GB_median_list)
+        # print(self.B_median_list)
+        # print(self.R_median_list)
+        # print(self.GR_median_list)
+        # print(self.GB_ave_list)
+        # print(self.B_ave_list)
+        # print(self.R_ave_list)
+        # print(self.GR_ave_list)
+        # print(self.GB_stdev_list)
+        # print(self.B_stdev_list)
+        # print(self.R_stdev_list)
+        # print(self.GR_stdev_list)
+        self.plot_wave()
+
+    def handle_raw(self, file_path, raw_file_list):
         AREA = [500, 500, 1500, 1500]
         RGB_Count_SUM = (AREA[2]-AREA[0])*(AREA[3]-AREA[1])/4
         np.set_printoptions(precision=3)
@@ -82,33 +153,20 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         slice_start = 32
         slice_end = rows * cols
         Frame_count = 32
-        R_ave_list = []
-        B_ave_list = []
-        GR_ave_list = []
-        GB_ave_list = []
-        R_median_list = []
-        B_median_list = []
-        GR_median_list = []
-        GB_median_list = []
-        R_stdev_list = []
-        B_stdev_list = []
-        GR_stdev_list = []
-        GB_stdev_list = []
+        RGB_Result_list = []
         raw_sum = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
         raw_stdev = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
         raw_median = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
-        # raw_mean = np.zeros((rows, cols), dtype=np.uint16)
         frame_list = list()
-        raw_median_list = [[0 for col in range(len(self.raw_file_list))] for row in
+        raw_median_list = [[0 for col in range(len(raw_file_list))] for row in
                            range((AREA[2] - AREA[0]) * (AREA[3] - AREA[1]))]
-        for file_loop in range(len(self.raw_file_list)):
-            raw_file = self.file_path + '\\' + self.raw_file_list[file_loop]
+        for file_loop in range(len(raw_file_list)):
+            raw_file = file_path + '\\' + raw_file_list[file_loop]
             total_pixels = np.fromfile(raw_file, dtype=np.uint16)
             total_pixels = total_pixels[slice_start:slice_end + slice_start]
             total_pixels = total_pixels.reshape(rows, cols)
             # choose the partial area
             choose_pixels = total_pixels[(AREA[0]):(AREA[2]), (AREA[1]):(AREA[3])]
-            # print('choose_pixels:', choose_pixels)
             #raw_sum is the sum of 32 frame
             raw_sum = raw_sum + choose_pixels
             frame_list.append(np.mean(choose_pixels))
@@ -123,9 +181,6 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
                     raw_median_list[xy_axis][file_loop] = choose_pixels[x_axis, y_axis]
                     xy_axis += 1
         self.frame_list = frame_list
-        # print('raw_median_list:', raw_median_list)
-        # print('raw_median_list:', raw_median_list[0])
-        # print('raw_median_list:', raw_median_list[1000*1000-1])
         ###################################################################
         # loop again calculation numpy -- raw median value  -- time
         ###################################################################
@@ -156,15 +211,12 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_median = np.median(B_median_list_single)
         R_median = np.median(R_median_list_single)
         GR_median = np.median(GR_median_list_single)
-        # GB_median_list.append(GB_median)
-        # B_median_list.append(B_median)
-        # R_median_list.append(R_median)
-        # GR_median_list.append(GR_median)
+        RGB_Result_list.extend([GB_median, B_median, R_median, GR_median])
         ###################################################################
         # calculation numpy -- raw average -- time
         ###################################################################
         self.raw_ave = raw_sum / Frame_count
-        print('raw_ave:', self.raw_ave)
+        # print('raw_ave:', self.raw_ave)
         # print('frame_list:', frame_list)
         ###-------------------------------------------------------------------###
         # CALCULATE: <<<<<<<<<<DIV R G B>>>>>>>>>>
@@ -188,20 +240,13 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_ave = B_sum / RGB_Count_SUM
         R_ave = R_sum / RGB_Count_SUM
         GR_ave = GR_sum / RGB_Count_SUM
-        print('GB_ave:', GB_ave)
-        print('B_ave:', B_ave)
-        print('R_ave:', R_ave)
-        print('GR_ave:', GR_ave)
-        # GB_ave_list.append(GB_ave)
-        # B_ave_list.append(B_ave)
-        # R_ave_list.append(R_ave)
-        # GR_ave_list.append(GR_ave)
+        RGB_Result_list.extend([GB_ave, B_ave, R_ave, GR_ave])
         ###################################################################
         # calculation numpy -- raw stdev -- time
         ###################################################################
         raw_stdev = 0
-        for file_loop in range(len(self.raw_file_list)):
-            raw_file = self.file_path + '\\' + self.raw_file_list[file_loop]
+        for file_loop in range(len(raw_file_list)):
+            raw_file = file_path + '\\' + raw_file_list[file_loop]
             total_pixels = np.fromfile(raw_file, dtype=np.uint16)
             total_pixels = total_pixels[slice_start:slice_end + Frame_count]
             total_pixels = total_pixels.reshape(rows, cols)
@@ -209,7 +254,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             choose_pixels = total_pixels[(AREA[0]):(AREA[2]), (AREA[1]):(AREA[3])]
             raw_stdev = raw_stdev + (self.raw_ave - choose_pixels) ** 2
         self.raw_stdev = np.sqrt(raw_stdev / Frame_count)
-        print('raw_stdev:', self.raw_stdev)
+        # print('raw_stdev:', self.raw_stdev)
         ###-------------------------------------------------------------------###
         # CALCULATE: <<<<<<<<<<DIV R G B>>>>>>>>>>
         ###-------------------------------------------------------------------###
@@ -227,14 +272,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_stdev = np.std(B_stdev_list_single)
         R_stdev = np.std(R_stdev_list_single)
         GR_stdev = np.std(GR_stdev_list_single)
-        print('GB_stdev:', GB_stdev)
-        print('B_stdev:', B_stdev)
-        print('R_stdev:', R_stdev)
-        print('GR_stdev:', GR_stdev)
-        # GB_stdev_list.append(GB_stdev)
-        # B_stdev_list.append(B_stdev)
-        # R_stdev_list.append(R_stdev)
-        # GR_stdev_list.append(GR_stdev)
+        RGB_Result_list.extend([GB_stdev, B_stdev, R_stdev, GR_stdev])
         ###################################################################
         # CALCULATE: <<<<<<<<<<MIX R G B>>>>>>>>>>
         # calculation numpy -- space  --  signal row data base on upper cal
@@ -261,6 +299,9 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         self.plot_wave_flag = True
         print(self.first_raw)
         print('Finished')
+        # print('RGB_Result_list:', RGB_Result_list)
+        return RGB_Result_list
+
 
     def display_ave(self):
         if self.display_ave_flag:
@@ -281,17 +322,67 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             self.textEdit.append('Please Choose File and Click Start Button!!!')
 
     def plot_wave(self):
-        if self.plot_wave_flag:
-            plt.xlabel("Frame NO.")
-            plt.ylabel("Mean Value")
-            plt.title("The every frame's mean value")
-            x = list(range(len(self.frame_list)))
-            for i in range(len(self.frame_list)):
-                plt.plot(x, self.frame_list, color='r')
-            plt.show()
-        else:
-            self.textEdit.append('Please Choose File and Click Start Button!!!')
+        # The follow parameter need to plot waveform y-axis:R B GR GB; x-axis:Average/Median/Standard deviation
+        # self.R_ave_list
+        # self.B_ave_list
+        # self.GR_ave_list
+        # self.GB_ave_list
+        # self.R_median_list
+        # self.B_median_list
+        # self.GR_median_list
+        # self.GB_median_list
+        # self.R_stdev_list
+        # self.B_stdev_list
+        # self.GR_stdev_list
+        # self.GB_stdev_list
+        R_ave_list = [round(i, 2) for i in self.R_ave_list]
+        B_ave_list = [round(i, 2) for i in self.B_ave_list]
+        GR_ave_list = [round(i, 2) for i in self.GR_ave_list]
+        GB_ave_list = [round(i, 2) for i in self.GB_ave_list]
+        R_median_list = [round(i, 2)for i in self.R_median_list]
+        B_median_list = [round(i, 2)for i in self.B_median_list]
+        GR_median_list = [round(i, 2)for i in self.GR_median_list]
+        GB_median_list = [round(i, 2)for i in self.GB_median_list]
+        R_stdev_list = [round(i, 2) for i in self.R_stdev_list]
+        B_stdev_list = [round(i, 2) for i in self.B_stdev_list]
+        GR_stdev_list = [round(i, 2) for i in self.GR_stdev_list]
+        GB_stdev_list = [round(i, 2) for i in self.GB_stdev_list]
 
+        fig = plt.figure(figsize=(25, 20))
+        x = list(range(len(self.R_ave_list)))
+        ##################################################################
+        Average = fig.add_subplot(3, 1, 1)
+        plt.xlabel("Light Intensity")
+        plt.ylabel("Average Value")
+        plt.title("RGB & Light Intensity")
+        for i in range(len(self.R_ave_list)):
+            Average.plot(x, R_ave_list, color='r')
+            Average.plot(x, B_ave_list, color='b')
+            Average.plot(x, GR_ave_list, color='gold')
+            Average.plot(x, GB_ave_list, color='mediumseagreen')
+        #################################################################
+        Median = fig.add_subplot(3, 1, 2)
+        x = list(range(len(R_median_list)))
+        plt.xlabel("Light Intensity")
+        plt.ylabel("Median Value")
+        plt.title("RGB & Light Intensity")
+        for i in range(len(R_median_list)):
+            Median.plot(x, R_median_list, color='r')
+            Median.plot(x, B_median_list, color='b')
+            Median.plot(x, GR_median_list, color='gold')
+            Median.plot(x, GB_median_list, color='mediumseagreen')
+        ##################################################################
+        x = list(range(len(R_stdev_list)))
+        Stdev = fig.add_subplot(3, 1, 3)
+        plt.xlabel("Light Intensity")
+        plt.ylabel("Standard Deviation  Value")
+        plt.title("RGB & Light Intensity")
+        for i in range(len(R_stdev_list)):
+            Stdev.plot(x, R_stdev_list, color='r')
+            Stdev.plot(x, B_stdev_list, color='b')
+            Stdev.plot(x, GR_stdev_list, color='gold')
+            Stdev.plot(x, GB_stdev_list, color='mediumseagreen')
+        plt.show()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
