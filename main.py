@@ -10,6 +10,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtGui import QTextCursor
 from matplotlib import pyplot as plt
+import pandas as pd
+import struct
 
 try_raw_path = r'D:\Python\Project\Ref_Data\RAWtestseria-0\20220427_000800_218397_0.raw'
 
@@ -20,18 +22,19 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):  # parent=None,so the HaiTu_UI is the topmost window
         super(HandleRAW_UI, self).__init__(
             parent)  # the super().__init__() excutes the constructor fo father, then we can use the property of father
-        self.GR_stdev_list = None
-        self.B_stdev_list = None
-        self.R_stdev_list = None
-        self.GB_median_list = None
-        self.GR_median_list = None
-        self.B_median_list = None
-        self.R_median_list = None
-        self.GB_ave_list = None
-        self.GB_stdev_list = None
-        self.GR_ave_list = None
-        self.B_ave_list = None
-        self.R_ave_list = None
+        # self.GR_stdev_list = None
+        # self.B_stdev_list = None
+        # self.R_stdev_list = None
+        # self.GB_median_list = None
+        # self.GR_median_list = None
+        # self.B_median_list = None
+        # self.R_median_list = None
+        # self.GB_ave_list = None
+        # self.GB_stdev_list = None
+        # self.GR_ave_list = None
+        # self.B_ave_list = None
+        # self.R_ave_list = None
+        self.light_list = None
         self.folder_list = None
         self.raw_stdev = None
         self.raw_ave = None
@@ -44,7 +47,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         self.display_stdev_flag = False
         self.plot_wave_flag = False
         self.init()
-
+        # self.handle_raw_single()
     def init(self):
         self.setupUi(myWindow)
         myWindow.setWindowTitle('海图')
@@ -54,7 +57,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
     def buttonORaction(self):
         self.pushButton.clicked.connect(lambda: HandleRAW_UI.start_handle(self))
         self.actionOpen.triggered.connect(lambda: HandleRAW_UI.openFileEvent(self))
-        self.plot_wave.clicked.connect(lambda: HandleRAW_UI.plot_wave(self))
+        # self.plot_wave.clicked.connect(lambda: HandleRAW_UI.plot_wave(self))
         self.display_ave.clicked.connect(lambda: HandleRAW_UI.display_ave(self))
         self.display_stdev.clicked.connect(lambda: HandleRAW_UI.display_stdev(self))
 
@@ -69,8 +72,20 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
                 folder_name_list.append(dir)
                 if os.path.join(root, dir):
                     self.folder_list.append(os.path.join(root, dir))
-        print(self.folder_list)
+        folder_name_list = self.folder_list
+        # sort the list with the back number
+        folder_pd = pd.DataFrame([i.split('-') for i in folder_name_list])
+        folder_pd[1] = folder_pd[1].astype(int)
+        # get the Light Intensity, put into list, sort them.
+        self.light_list = folder_pd[1].tolist()
+        self.light_list.sort()
 
+        folder_pd = folder_pd.sort_values(by=1, ascending=True)
+        folder_pd = folder_pd.values.tolist()
+        self.folder_list = []
+        for i in range(len(folder_pd)):
+            self.folder_list.append(folder_pd[i][0] + '-' + str(folder_pd[i][1]))
+        print(self.folder_list)
         self.start_handle()
 
     def start_handle(self):
@@ -129,19 +144,21 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             self.R_stdev_list.append(get_RGB_Result_list[10])
             self.GR_stdev_list.append(get_RGB_Result_list[11])
 
-        # print(self.GB_median_list)
-        # print(self.B_median_list)
-        # print(self.R_median_list)
-        # print(self.GR_median_list)
-        # print(self.GB_ave_list)
-        # print(self.B_ave_list)
-        # print(self.R_ave_list)
-        # print(self.GR_ave_list)
-        # print(self.GB_stdev_list)
-        # print(self.B_stdev_list)
-        # print(self.R_stdev_list)
-        # print(self.GR_stdev_list)
-        self.plot_wave()
+        print(self.GB_median_list)
+        print(self.B_median_list)
+        print(self.R_median_list)
+        print(self.GR_median_list)
+        print(self.GB_ave_list)
+        print(self.B_ave_list)
+        print(self.R_ave_list)
+        print(self.GR_ave_list)
+        print(self.GB_stdev_list)
+        print(self.B_stdev_list)
+        print(self.R_stdev_list)
+        print(self.GR_stdev_list)
+        print('jjj')
+        self.tttplot_wave()
+
 
     def handle_raw(self, file_path, raw_file_list):
         AREA = [500, 500, 1500, 1500]
@@ -165,6 +182,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             total_pixels = np.fromfile(raw_file, dtype=np.uint16)
             total_pixels = total_pixels[slice_start:slice_end + slice_start]
             total_pixels = total_pixels.reshape(rows, cols)
+
+            # total_pixels = np.reshape(np.right_shift(total_pixels[32:], 2), [rows, cols])
             # choose the partial area
             choose_pixels = total_pixels[(AREA[0]):(AREA[2]), (AREA[1]):(AREA[3])]
             #raw_sum is the sum of 32 frame
@@ -303,6 +322,53 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         return RGB_Result_list
 
 
+
+##===============================================================
+    def handle_raw_single(self):
+        print('working')
+        AREA = [500, 500, 1500, 1500]
+        RGB_Count_SUM = (AREA[2]-AREA[0])*(AREA[3]-AREA[1])/4
+        np.set_printoptions(precision=3)
+        rows = 2064  # image row is V:2064     2064*2672 = 5515008
+        cols = 2672  # image column is H:2672
+        channels = 1  # image channel, the gray is 1
+        slice_start = 32
+        slice_end = rows * cols
+        Frame_count = 32
+        total_pixels = np.fromfile(r'D:\Python\Project\Ref_Data\RAWtestseria-700\20220426_000042_965044_0.raw',
+                                   dtype=np.uint16)
+        # total_pixels = open(r'D:\Python\Project\Ref_Data\RAWtestseria-700\20220426_000042_965044_0.raw', 'rb')
+        # data = total_pixels.read()
+        # print('data:', data)
+        # data_dec = struct.unpack('<' + int(len(data) / 2) * 'H', data)
+        # print('data_dec:', data_dec)
+        array_data_dec = np.reshape(np.right_shift(total_pixels[32:], 2), [rows, cols])
+        print('array_data_dec:', array_data_dec)
+        number = array_data_dec.size  # 计算 X 中所有元素的个数
+        X_row = np.size(array_data_dec, 0)  # 计算 X 的行数
+        X_col = np.size(array_data_dec, 1)  # 计算 X 的列数
+        print("number:", number)
+        print("X_row:", X_row)
+        print("X_col:", X_col)
+        np.savetxt(r'D:\Python\Project\Ref_Data\np_raw2txt.txt',array_data_dec)
+        # data_out = np.fromfile(r'D:\Python\Project\Ref_Data\np_raw2txt.txt', dtype=np.int32)
+        # data_out = data_out.reshape(rows, cols)
+        # print(data_out)
+
+
+        # txt = open(r'D:\Python\Project\Ref_Data\np_raw2txt.txt', '+w')
+        # txt.write(str(data))
+
+        # total_pixels = total_pixels/4
+        # total_pixels = total_pixels[slice_start:slice_end + slice_start]
+        # total_pixels = total_pixels.reshape(rows, cols)
+        # # choose the partial area
+        # choose_pixels = total_pixels[(AREA[0]):(AREA[2]), (AREA[1]):(AREA[3])]
+
+        # np.savetxt(r'D:\Python\Project\Ref_Data\np_raw2txt.txt', total_pixels)
+        print('finished')
+##===============================================================
+
     def display_ave(self):
         if self.display_ave_flag:
             cv2.imshow('RAW_Average', self.raw_ave)
@@ -321,7 +387,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         else:
             self.textEdit.append('Please Choose File and Click Start Button!!!')
 
-    def plot_wave(self):
+    def tttplot_wave(self):
+        print('in')
         # The follow parameter need to plot waveform y-axis:R B GR GB; x-axis:Average/Median/Standard deviation
         # self.R_ave_list
         # self.B_ave_list
@@ -339,10 +406,10 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_ave_list = [round(i, 2) for i in self.B_ave_list]
         GR_ave_list = [round(i, 2) for i in self.GR_ave_list]
         GB_ave_list = [round(i, 2) for i in self.GB_ave_list]
-        R_median_list = [round(i, 2)for i in self.R_median_list]
-        B_median_list = [round(i, 2)for i in self.B_median_list]
-        GR_median_list = [round(i, 2)for i in self.GR_median_list]
-        GB_median_list = [round(i, 2)for i in self.GB_median_list]
+        R_median_list = self.R_median_list
+        B_median_list = self.B_median_list
+        GR_median_list = self.GR_median_list
+        GB_median_list = self.GB_median_list
         R_stdev_list = [round(i, 2) for i in self.R_stdev_list]
         B_stdev_list = [round(i, 2) for i in self.B_stdev_list]
         GR_stdev_list = [round(i, 2) for i in self.GR_stdev_list]
@@ -360,7 +427,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             Average.plot(x, B_ave_list, color='b')
             Average.plot(x, GR_ave_list, color='gold')
             Average.plot(x, GB_ave_list, color='mediumseagreen')
-        #################################################################
+        ################################################################
         Median = fig.add_subplot(3, 1, 2)
         x = list(range(len(R_median_list)))
         plt.xlabel("Light Intensity")
@@ -382,6 +449,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             Stdev.plot(x, B_stdev_list, color='b')
             Stdev.plot(x, GR_stdev_list, color='gold')
             Stdev.plot(x, GB_stdev_list, color='mediumseagreen')
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+
         plt.show()
 
 if __name__ == '__main__':
