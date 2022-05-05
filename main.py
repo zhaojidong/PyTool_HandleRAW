@@ -1,14 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import os, time
+import os, time, cv2, sys
 import numpy as np
-import openpyxl, cv2, sys
 from HandleRAW_UI import Ui_MainWindow
-from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtGui import QTextCursor
 from matplotlib import pyplot as plt
 import pandas as pd
 import struct
@@ -79,7 +74,6 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         # get the Light Intensity, put into list, sort them.
         self.light_list = folder_pd[1].tolist()
         self.light_list.sort()
-
         folder_pd = folder_pd.sort_values(by=1, ascending=True)
         folder_pd = folder_pd.values.tolist()
         self.folder_list = []
@@ -94,12 +88,12 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         time_start = time.time()
         self.handlePathOrFile()
         time_end = time.time()
-        # time_take = time_end - time_start
         self.textEdit.append('\r\n')
         self.textEdit.append('----Finished!!!----')
         self.textEdit.append('Take time:' + str(time_end - time_start) + ' S')
         self.textEdit.append(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
         self.textEdit.append('\r\n')
+        print('All Finished')
 
     def handlePathOrFile(self):
         # get_RGB_Result_list order:
@@ -127,8 +121,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
                     raw_file_list.append(self.file_list[list_loop])
             self.textEdit.append(str(folder))
             self.textEdit.append('\r\n')
-            self.textEdit.append('Ready......')
-            self.textEdit.append('\r\n')
+            # self.textEdit.append('Ready......')
+            # self.textEdit.append('\r\n')
 
             get_RGB_Result_list = self.handle_raw(folder, raw_file_list)
             self.GB_median_list.append(get_RGB_Result_list[0])
@@ -144,20 +138,19 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             self.R_stdev_list.append(get_RGB_Result_list[10])
             self.GR_stdev_list.append(get_RGB_Result_list[11])
 
-        print(self.GB_median_list)
-        print(self.B_median_list)
-        print(self.R_median_list)
-        print(self.GR_median_list)
-        print(self.GB_ave_list)
-        print(self.B_ave_list)
-        print(self.R_ave_list)
-        print(self.GR_ave_list)
-        print(self.GB_stdev_list)
-        print(self.B_stdev_list)
-        print(self.R_stdev_list)
-        print(self.GR_stdev_list)
-        print('jjj')
-        self.tttplot_wave()
+        # print(self.GB_median_list)
+        # print(self.B_median_list)
+        # print(self.R_median_list)
+        # print(self.GR_median_list)
+        # print(self.GB_ave_list)
+        # print(self.B_ave_list)
+        # print(self.R_ave_list)
+        # print(self.GR_ave_list)
+        # print(self.GB_stdev_list)
+        # print(self.B_stdev_list)
+        # print(self.R_stdev_list)
+        # print(self.GR_stdev_list)
+        self.ttt_plot_wave()
 
 
     def handle_raw(self, file_path, raw_file_list):
@@ -172,18 +165,15 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         Frame_count = 32
         RGB_Result_list = []
         raw_sum = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
-        raw_stdev = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
-        raw_median = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
+        # raw_stdev = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
+        # raw_median = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
         frame_list = list()
         raw_median_list = [[0 for col in range(len(raw_file_list))] for row in
                            range((AREA[2] - AREA[0]) * (AREA[3] - AREA[1]))]
         for file_loop in range(len(raw_file_list)):
             raw_file = file_path + '\\' + raw_file_list[file_loop]
-            total_pixels = np.fromfile(raw_file, dtype=np.uint16)
-            total_pixels = total_pixels[slice_start:slice_end + slice_start]
-            total_pixels = total_pixels.reshape(rows, cols)
-
-            # total_pixels = np.reshape(np.right_shift(total_pixels[32:], 2), [rows, cols])
+            total_pixels = np.fromfile(raw_file, dtype='>u2')
+            total_pixels = np.reshape(np.right_shift(total_pixels[slice_start:], 2), [rows, cols])
             # choose the partial area
             choose_pixels = total_pixels[(AREA[0]):(AREA[2]), (AREA[1]):(AREA[3])]
             #raw_sum is the sum of 32 frame
@@ -249,6 +239,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         GR_sum = 0
         RGB_RAW_AVE = raw_sum / Frame_count
         # print('RGB_RAW_AVE:',RGB_RAW_AVE)
+        # **_sum is the sum value of every color(GR GB R B)
         for x_axis in range(int((AREA[2] - AREA[0])/2)):
             for y_axis in range(int((AREA[3] - AREA[1])/2)):
                 GB_sum = GB_sum + RGB_RAW_AVE[2*x_axis + 0, 2*y_axis + 0]
@@ -298,30 +289,28 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         ###################################################################
         # signal raw data -> signal average
         # step1: numpy average calculation base on the before average data of raw data
-        ave_value = np.mean(self.raw_ave)
-        self.textEdit.append('Average Value:' + str(ave_value))
+        # ave_value = np.mean(self.raw_ave)
+        # self.textEdit.append('Average Value:' + str(ave_value))
         ###-----------------------------------------------------###
         # signal raw data -> signal median
         # step1: 2 dimensional convert to 1 dimensional
         # step2: numpy median operation
-        median_value = np.median(raw_median.flatten())
-        self.textEdit.append('Median Value:' + str(median_value))
+        # median_value = np.median(raw_median.flatten())
+        # self.textEdit.append('Median Value:' + str(median_value))
         ###-----------------------------------------------------###
         # signal raw data -> signal stander dev
         # step1: 2 dimensional convert to 1 dimensional
         # step2: numpy standard deviation operation
-        std_dev_value = np.std(self.raw_stdev.flatten())
-        self.textEdit.append('Standard Deviation Value:' + str(std_dev_value))
+        # std_dev_value = np.std(self.raw_stdev.flatten())
+        # self.textEdit.append('Standard Deviation Value:' + str(std_dev_value))
         ###-----------------------------------------------------###
         self.display_ave_flag = True
         self.display_stdev_flag = True
         self.plot_wave_flag = True
-        print(self.first_raw)
-        print('Finished')
+        # print(self.first_raw)
+        # print('Finished')
         # print('RGB_Result_list:', RGB_Result_list)
         return RGB_Result_list
-
-
 
 ##===============================================================
     def handle_raw_single(self):
@@ -335,15 +324,22 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         slice_start = 32
         slice_end = rows * cols
         Frame_count = 32
-        total_pixels = np.fromfile(r'D:\Python\Project\Ref_Data\RAWtestseria-700\20220426_000042_965044_0.raw',
-                                   dtype=np.uint16)
-        # total_pixels = open(r'D:\Python\Project\Ref_Data\RAWtestseria-700\20220426_000042_965044_0.raw', 'rb')
-        # data = total_pixels.read()
-        # print('data:', data)
-        # data_dec = struct.unpack('<' + int(len(data) / 2) * 'H', data)
-        # print('data_dec:', data_dec)
+        ######numpy
+        total_pixels = np.fromfile(r'D:\Python\Project\PyTool_HandleRAW\700.raw', dtype='>u2')
+        print('total_pixels:',total_pixels)
         array_data_dec = np.reshape(np.right_shift(total_pixels[32:], 2), [rows, cols])
         print('array_data_dec:', array_data_dec)
+        ######open file read binary
+        total_pixels = open(r'D:\Python\Project\PyTool_HandleRAW\700.raw', 'rb')
+        data = total_pixels.read()
+        # write_data = open(r'D:\Python\Project\PyTool_HandleRAW\rawdata.txt', 'w')
+        # write_data.write('total_pixels')
+        # print('data:', data)
+        data_dec = struct.unpack('>' + int(len(data) / 2) * 'H', data)
+        # print('data_dec:', data_dec)
+        array_data_dec = np.reshape(np.right_shift(data_dec[32:], 2), [rows, cols])
+        print('array_data_dec:', array_data_dec)
+        ####### common
         number = array_data_dec.size  # 计算 X 中所有元素的个数
         X_row = np.size(array_data_dec, 0)  # 计算 X 的行数
         X_col = np.size(array_data_dec, 1)  # 计算 X 的列数
@@ -387,21 +383,9 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         else:
             self.textEdit.append('Please Choose File and Click Start Button!!!')
 
-    def tttplot_wave(self):
-        print('in')
+    def ttt_plot_wave(self):
+        print('Plotting')
         # The follow parameter need to plot waveform y-axis:R B GR GB; x-axis:Average/Median/Standard deviation
-        # self.R_ave_list
-        # self.B_ave_list
-        # self.GR_ave_list
-        # self.GB_ave_list
-        # self.R_median_list
-        # self.B_median_list
-        # self.GR_median_list
-        # self.GB_median_list
-        # self.R_stdev_list
-        # self.B_stdev_list
-        # self.GR_stdev_list
-        # self.GB_stdev_list
         R_ave_list = [round(i, 2) for i in self.R_ave_list]
         B_ave_list = [round(i, 2) for i in self.B_ave_list]
         GR_ave_list = [round(i, 2) for i in self.GR_ave_list]
@@ -415,42 +399,120 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         GR_stdev_list = [round(i, 2) for i in self.GR_stdev_list]
         GB_stdev_list = [round(i, 2) for i in self.GB_stdev_list]
 
+        R_ave_dict = {}
+        B_ave_dict = {}
+        GR_ave_dict = {}
+        GB_ave_dict = {}
+        R_median_dict = {}
+        B_median_dict = {}
+        GR_median_dict = {}
+        GB_median_dict = {}
+        R_stdev_dict = {}
+        B_stdev_dict = {}
+        GR_stdev_dict = {}
+        GB_stdev_dict = {}
+        # merge two list
+        for i, j in zip(self.light_list, R_ave_list):
+            R_ave_dict[i] = j
+        for i, j in zip(self.light_list, B_ave_list):
+            B_ave_dict[i] = j
+        for i, j in zip(self.light_list, GR_ave_list):
+            GR_ave_dict[i] = j
+        for i, j in zip(self.light_list, GB_ave_list):
+            GB_ave_dict[i] = j
+        for i, j in zip(self.light_list, R_median_list):
+            R_median_dict[i] = j
+        for i, j in zip(self.light_list, B_median_list):
+            B_median_dict[i] = j
+        for i, j in zip(self.light_list, GR_median_list):
+            GR_median_dict[i] = j
+        for i, j in zip(self.light_list, GB_median_list):
+            GB_median_dict[i] = j
+        for i, j in zip(self.light_list, R_stdev_list):
+            R_stdev_dict[i] = j
+        for i, j in zip(self.light_list, B_stdev_list):
+            B_stdev_dict[i] = j
+        for i, j in zip(self.light_list, GR_stdev_list):
+            GR_stdev_dict[i] = j
+        for i, j in zip(self.light_list, GB_stdev_list):
+            GB_stdev_dict[i] = j
+
         fig = plt.figure(figsize=(25, 20))
         x = list(range(len(self.R_ave_list)))
+        # plt.legend(loc='upper left', ncol=1)  # 图例及位置： 1右上角，2 左上角 loc函数可不写 0为最优 ncol为标签有几列
         ##################################################################
         Average = fig.add_subplot(3, 1, 1)
         plt.xlabel("Light Intensity")
         plt.ylabel("Average Value")
         plt.title("RGB & Light Intensity")
-        for i in range(len(self.R_ave_list)):
-            Average.plot(x, R_ave_list, color='r')
-            Average.plot(x, B_ave_list, color='b')
-            Average.plot(x, GR_ave_list, color='gold')
-            Average.plot(x, GB_ave_list, color='mediumseagreen')
+        # for i in range(len(self.R_ave_list)):
+            # Average.plot(x, R_ave_list, color='r')
+            # Average.plot(x, B_ave_list, color='b')
+            # Average.plot(x, GR_ave_list, color='gold')
+            # Average.plot(x, GB_ave_list, color='mediumseagreen')
+        x = [i for i in R_ave_dict.keys()]
+        y = [i for i in R_ave_dict.values()]
+        plt.plot(x, y, color='r', label='R_ave', marker='o')
+        x = [i for i in B_ave_dict.keys()]
+        y = [i for i in B_ave_dict.values()]
+        plt.plot(x, y, color='b', label='B_ave', marker='o')
+        x = [i for i in GR_ave_dict.keys()]
+        y = [i for i in GR_ave_dict.values()]
+        plt.plot(x, y, color='gold', label='GR_ave', marker='o')
+        x = [i for i in GB_ave_dict.keys()]
+        y = [i for i in GB_ave_dict.values()]
+        plt.plot(x, y, color='mediumseagreen', label='GB_ave', marker='o')
+        plt.legend(['R_ave', 'B_ave', 'GR_ave', 'GB_ave'], loc='upper left')  #
         ################################################################
         Median = fig.add_subplot(3, 1, 2)
         x = list(range(len(R_median_list)))
         plt.xlabel("Light Intensity")
         plt.ylabel("Median Value")
         plt.title("RGB & Light Intensity")
-        for i in range(len(R_median_list)):
-            Median.plot(x, R_median_list, color='r')
-            Median.plot(x, B_median_list, color='b')
-            Median.plot(x, GR_median_list, color='gold')
-            Median.plot(x, GB_median_list, color='mediumseagreen')
+        # for i in range(len(R_median_list)):
+        #     Median.plot(x, R_median_list, color='r')
+        #     Median.plot(x, B_median_list, color='b')
+        #     Median.plot(x, GR_median_list, color='gold')
+        #     Median.plot(x, GB_median_list, color='mediumseagreen')
+        x = [i for i in R_median_dict.keys()]
+        y = [i for i in R_median_dict.values()]
+        plt.plot(x, y, color='r', label='R_median', marker='*')
+        x = [i for i in B_median_dict.keys()]
+        y = [i for i in B_median_dict.values()]
+        plt.plot(x, y, color='b', label='B_median', marker='*')
+        x = [i for i in GR_median_dict.keys()]
+        y = [i for i in GR_median_dict.values()]
+        plt.plot(x, y, color='gold', label='GR_median', marker='*')
+        x = [i for i in GB_median_dict.keys()]
+        y = [i for i in GB_median_dict.values()]
+        plt.plot(x, y, color='mediumseagreen', label='GB_median', marker='*')
+        plt.legend(['R_median', 'B_median', 'GR_median', 'GB_median'], loc='upper left')
         ##################################################################
         x = list(range(len(R_stdev_list)))
         Stdev = fig.add_subplot(3, 1, 3)
         plt.xlabel("Light Intensity")
         plt.ylabel("Standard Deviation  Value")
         plt.title("RGB & Light Intensity")
-        for i in range(len(R_stdev_list)):
-            Stdev.plot(x, R_stdev_list, color='r')
-            Stdev.plot(x, B_stdev_list, color='b')
-            Stdev.plot(x, GR_stdev_list, color='gold')
-            Stdev.plot(x, GB_stdev_list, color='mediumseagreen')
-        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
+        # for i in range(len(R_stdev_list)):
+        #     Stdev.plot(x, R_stdev_list, color='r')
+        #     Stdev.plot(x, B_stdev_list, color='b')
+        #     Stdev.plot(x, GR_stdev_list, color='gold')
+        #     Stdev.plot(x, GB_stdev_list, color='mediumseagreen')
+        x = [i for i in R_stdev_dict.keys()]
+        y = [i for i in R_stdev_dict.values()]
+        plt.plot(x, y, color='r', label='R_stdev', marker='+')
+        x = [i for i in B_stdev_dict.keys()]
+        y = [i for i in B_stdev_dict.values()]
+        plt.plot(x, y, color='b', label='B_stdev', marker='+')
+        x = [i for i in GR_stdev_dict.keys()]
+        y = [i for i in GR_stdev_dict.values()]
+        plt.plot(x, y, color='gold', label='GR_stdev', marker='+')
+        x = [i for i in GB_stdev_dict.keys()]
+        y = [i for i in GB_stdev_dict.values()]
+        plt.plot(x, y, color='mediumseagreen', label='GB_stdev', marker='+')
+        plt.legend(['R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev'], loc='upper left')
 
+        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
         plt.show()
 
 if __name__ == '__main__':
@@ -490,3 +552,12 @@ if __name__ == '__main__':
     # arr.reshape(3,3)
     # print(arr)
 
+    # data = [
+    #     [1, 2],
+    #     [3, 2],
+    #     [4, 7],
+    #     [2, 4],
+    #     ]
+    # x, y = zip(*data)
+    # plt.scatter(x, y)
+    # plt.show()
