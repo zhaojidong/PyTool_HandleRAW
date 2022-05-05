@@ -6,7 +6,7 @@ from HandleRAW_UI import Ui_MainWindow
 from PyQt5.QtWidgets import *
 from matplotlib import pyplot as plt
 import pandas as pd
-import struct
+import struct, openpyxl
 
 try_raw_path = r'D:\Python\Project\Ref_Data\RAWtestseria-0\20220427_000800_218397_0.raw'
 
@@ -29,6 +29,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         # self.GR_ave_list = None
         # self.B_ave_list = None
         # self.R_ave_list = None
+        self.note_data = None
         self.light_list = None
         self.folder_list = None
         self.raw_stdev = None
@@ -60,8 +61,15 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         self.raw_file_list = list()
         self.folder_list = []
         folder_name_list = []
-        self.file_path = QFileDialog.getExistingDirectory(None, 'Choose Folder',
-                                                          r'D:\PythonProject')  # return value is tuple type
+        try:
+            print('get folder')
+            self.file_path = QFileDialog.getExistingDirectory(None, 'Choose Folder',
+                                                            r'D:\PythonProject')  # return value is tuple type
+        except Exception as e:
+            print(e.args)
+            print(str(e))
+            print(repr(e))
+        print(self.file_path)
         for root, dirs, files in os.walk(self.file_path):
             for dir in dirs:
                 folder_name_list.append(dir)
@@ -86,6 +94,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         print('I am Working......')
         self.textEdit.append('Start calculation......')
         time_start = time.time()
+        note_path = str(self.file_path + '/Note_data_' + time.strftime("%Y%m%d%H%M%S", time.localtime()) + '.txt')
+        self.note_data = open(note_path, 'w')
         self.handlePathOrFile()
         time_end = time.time()
         self.textEdit.append('\r\n')
@@ -410,6 +420,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_stdev_dict = {}
         GR_stdev_dict = {}
         GB_stdev_dict = {}
+        # light_list_y = [self.light_list[0], 50, self.light_list[-1]]
         # merge two list(x is Light Intensity, y is the measured value)
         for i, j in zip(self.light_list, R_ave_list):
             R_ave_dict[i] = j
@@ -435,9 +446,49 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             GR_stdev_dict[i] = j
         for i, j in zip(self.light_list, GB_stdev_list):
             GB_stdev_dict[i] = j
-
+        # write the data to txt file
+        self.note_data.write('R_ave')
+        self.note_data.write(str(R_ave_dict))
+        self.note_data.write('\r')
+        self.note_data.write('B_ave')
+        self.note_data.write(str(B_ave_dict))
+        self.note_data.write('\r')
+        self.note_data.write('GR_ave')
+        self.note_data.write(str(GR_ave_dict))
+        self.note_data.write('\r')
+        self.note_data.write('GB_ave')
+        self.note_data.write(str(GB_ave_dict))
+        self.note_data.write('\r')
+        self.note_data.write('R_median')
+        self.note_data.write(str(R_median_dict))
+        self.note_data.write('\r')
+        self.note_data.write('B_median')
+        self.note_data.write(str(B_median_dict))
+        self.note_data.write('\r')
+        self.note_data.write('GR_median')
+        self.note_data.write(str(GR_median_dict))
+        self.note_data.write('\r')
+        self.note_data.write('GB_median')
+        self.note_data.write(str(GB_median_dict))
+        self.note_data.write('\r')
+        self.note_data.write('R_stdev')
+        self.note_data.write(str(R_stdev_dict))
+        self.note_data.write('\r')
+        self.note_data.write('B_stdev')
+        self.note_data.write(str(B_stdev_dict))
+        self.note_data.write('\r')
+        self.note_data.write('GR_stdev')
+        self.note_data.write(str(GR_stdev_dict))
+        self.note_data.write('\r')
+        self.note_data.write('GB_stdev')
+        self.note_data.write(str(GB_stdev_dict))
+        self.note_data.write('\r')
+        self.note_data.close()  # close is saving
         fig = plt.figure(figsize=(25, 20))
-        x = list(range(len(self.R_ave_list)))
+        # fig.autofmt_xdate()
+        # x = list(range(len(self.R_ave_list)))
+        # my_x_ticks = np.arange(self.light_list[0], 50, self.light_list[-1])
+        # plt.xticks(my_x_ticks)
         # plt.legend(loc='upper left', ncol=1)  # 图例及位置： 1右上角，2 左上角 loc函数可不写 0为最优 ncol为标签有几列
         ##################################################################
         Average = fig.add_subplot(3, 1, 1)
@@ -445,10 +496,10 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         plt.ylabel("Average Value")
         plt.title("RGB & Light Intensity")
         # for i in range(len(self.R_ave_list)):
-            # Average.plot(x, R_ave_list, color='r')
-            # Average.plot(x, B_ave_list, color='b')
-            # Average.plot(x, GR_ave_list, color='gold')
-            # Average.plot(x, GB_ave_list, color='mediumseagreen')
+        #     Average.plot(x, R_ave_list, color='r', marker='o')
+        #     Average.plot(x, B_ave_list, color='b', marker='v')
+        #     Average.plot(x, GR_ave_list, color='gold', marker='p')
+        #     Average.plot(x, GB_ave_list, color='mediumseagreen', marker='d')
         x = [i for i in R_ave_dict.keys()]
         y = [i for i in R_ave_dict.values()]
         plt.plot(x, y, color='r', label='R_ave', marker='o')
@@ -461,7 +512,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         x = [i for i in GB_ave_dict.keys()]
         y = [i for i in GB_ave_dict.values()]
         plt.plot(x, y, color='mediumseagreen', label='GB_ave', marker='d')
-        plt.legend(['R_ave', 'B_ave', 'GR_ave', 'GB_ave'], loc='upper left')  #
+        plt.legend(['R_ave', 'B_ave', 'GR_ave', 'GB_ave'], loc='upper left')
+        plt.xticks(self.light_list, self.light_list, rotation=270)
         ################################################################
         Median = fig.add_subplot(3, 1, 2)
         x = list(range(len(R_median_list)))
@@ -486,6 +538,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         y = [i for i in GB_median_dict.values()]
         plt.plot(x, y, color='mediumseagreen', label='GB_median', marker='d')
         plt.legend(['R_median', 'B_median', 'GR_median', 'GB_median'], loc='upper left')
+        plt.xticks(self.light_list, self.light_list, rotation=270)
         ##################################################################
         x = list(range(len(R_stdev_list)))
         Stdev = fig.add_subplot(3, 1, 3)
@@ -510,6 +563,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         y = [i for i in GB_stdev_dict.values()]
         plt.plot(x, y, color='mediumseagreen', label='GB_stdev', marker='d')
         plt.legend(['R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev'], loc='upper left')
+        plt.xticks(self.light_list, self.light_list, rotation=270)
 
         plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
         plt.show()
@@ -521,6 +575,12 @@ if __name__ == '__main__':
     myWindow.show()
     sys.exit(app.exec_())
 
+
+    # Data_name = ['Light Intensity', 'R_ave', 'B_ave', 'GR_ave', 'GB_ave', 'R_median', 'B_median', 'GR_median',
+    #              'GB_median', 'R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev']
+    # c = {"name": Data_name}
+    # df = pd.DataFrame(c,columns=['name'])
+    # print(df)
     # imgData = np.fromfile(try_raw_path, dtype=np.uint16)
     # total_pixels = imgData[0:5515040]
     # total_pixels = total_pixels.reshape(160, 34469)
