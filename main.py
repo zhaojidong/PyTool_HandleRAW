@@ -9,7 +9,7 @@ import pandas as pd
 import struct, openpyxl
 
 try_raw_path = r'D:\Python\Project\Ref_Data\RAWtestseria-0\20220427_000800_218397_0.raw'
-
+folder_name_string_pattern = '0x'
 # 11030080 = 320*34469 uint8
 # 5515040  = 320*34469 uint16
 
@@ -29,7 +29,9 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         # self.GR_ave_list = None
         # self.B_ave_list = None
         # self.R_ave_list = None
-        self.note_data = None
+        self.ticks = None
+        self.labels = None
+        self.x_axis_label = None
         self.light_list = None
         self.folder_list = None
         self.raw_stdev = None
@@ -78,24 +80,35 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         folder_name_list = self.folder_list
         # sort the list with the back number
         folder_pd = pd.DataFrame([i.split('-') for i in folder_name_list])
-        folder_pd[1] = folder_pd[1].astype(int)
-        # get the Light Intensity, put into list, sort them.
-        self.light_list = folder_pd[1].tolist()
-        self.light_list.sort()
+        # # judge the data is Light Intensity(Dec), or register value(Hex)
+        if folder_name_string_pattern in folder_pd[1][0]:
+            self.labels = folder_pd[1].tolist()
+            folder_pd[1] = folder_pd[1].map(lambda x: str(x)[2:])  # delete '0x'
+            folder_pd[1] = folder_pd[1].apply(lambda x: int(x, 16))  # convert Hex to Dec
+            self.ticks = folder_pd[1].tolist()
+            self.x_axis_label = 'Register Value'
+        else:
+            self.x_axis_label = 'Light Intensity'
+            folder_pd[1] = folder_pd[1].astype(int)
+            # get the Light Intensity, put into list, sort them.
+            self.light_list = folder_pd[1].tolist()
+            self.light_list.sort()
+            self.labels = self.light_list
+            self.ticks = self.light_list
         folder_pd = folder_pd.sort_values(by=1, ascending=True)
         folder_pd = folder_pd.values.tolist()
         self.folder_list = []
         for i in range(len(folder_pd)):
-            self.folder_list.append(folder_pd[i][0] + '-' + str(folder_pd[i][1]))
-        print(self.folder_list)
+            # self.folder_list.append(folder_pd[i][0] + '-' + str(folder_pd[i][1]))
+            self.folder_list.append(folder_pd[i][0] + '-' + str(self.labels[i]))
         self.start_handle()
 
     def start_handle(self):
         print('I am Working......')
         self.textEdit.append('Start calculation......')
         time_start = time.time()
-        note_path = str(self.file_path + '/Note_data_' + time.strftime("%Y%m%d%H%M%S", time.localtime()) + '.txt')
-        self.note_data = open(note_path, 'w')
+        # note_path = str(self.file_path + '/Note_data_' + time.strftime("%Y%m%d%H%M%S", time.localtime()) + '.txt')
+        # self.note_data = open(note_path, 'w')
         self.handlePathOrFile()
         time_end = time.time()
         self.textEdit.append('\r\n')
@@ -407,7 +420,6 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_stdev_list = [round(i, 2) for i in self.B_stdev_list]
         GR_stdev_list = [round(i, 2) for i in self.GR_stdev_list]
         GB_stdev_list = [round(i, 2) for i in self.GB_stdev_list]
-
         R_ave_dict = {}
         B_ave_dict = {}
         GR_ave_dict = {}
@@ -420,81 +432,61 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_stdev_dict = {}
         GR_stdev_dict = {}
         GB_stdev_dict = {}
-        # light_list_y = [self.light_list[0], 50, self.light_list[-1]]
         # merge two list(x is Light Intensity, y is the measured value)
-        for i, j in zip(self.light_list, R_ave_list):
+        for i, j in zip(self.ticks, R_ave_list):
             R_ave_dict[i] = j
-        for i, j in zip(self.light_list, B_ave_list):
+        for i, j in zip(self.ticks, B_ave_list):
             B_ave_dict[i] = j
-        for i, j in zip(self.light_list, GR_ave_list):
+        for i, j in zip(self.ticks, GR_ave_list):
             GR_ave_dict[i] = j
-        for i, j in zip(self.light_list, GB_ave_list):
+        for i, j in zip(self.ticks, GB_ave_list):
             GB_ave_dict[i] = j
-        for i, j in zip(self.light_list, R_median_list):
+        for i, j in zip(self.ticks, R_median_list):
             R_median_dict[i] = j
-        for i, j in zip(self.light_list, B_median_list):
+        for i, j in zip(self.ticks, B_median_list):
             B_median_dict[i] = j
-        for i, j in zip(self.light_list, GR_median_list):
+        for i, j in zip(self.ticks, GR_median_list):
             GR_median_dict[i] = j
-        for i, j in zip(self.light_list, GB_median_list):
+        for i, j in zip(self.ticks, GB_median_list):
             GB_median_dict[i] = j
-        for i, j in zip(self.light_list, R_stdev_list):
+        for i, j in zip(self.ticks, R_stdev_list):
             R_stdev_dict[i] = j
-        for i, j in zip(self.light_list, B_stdev_list):
+        for i, j in zip(self.ticks, B_stdev_list):
             B_stdev_dict[i] = j
-        for i, j in zip(self.light_list, GR_stdev_list):
+        for i, j in zip(self.ticks, GR_stdev_list):
             GR_stdev_dict[i] = j
-        for i, j in zip(self.light_list, GB_stdev_list):
+        for i, j in zip(self.ticks, GB_stdev_list):
             GB_stdev_dict[i] = j
-        # write the data to txt file
-        self.note_data.write('R_ave')
-        self.note_data.write(str(R_ave_dict))
-        self.note_data.write('\r')
-        self.note_data.write('B_ave')
-        self.note_data.write(str(B_ave_dict))
-        self.note_data.write('\r')
-        self.note_data.write('GR_ave')
-        self.note_data.write(str(GR_ave_dict))
-        self.note_data.write('\r')
-        self.note_data.write('GB_ave')
-        self.note_data.write(str(GB_ave_dict))
-        self.note_data.write('\r')
-        self.note_data.write('R_median')
-        self.note_data.write(str(R_median_dict))
-        self.note_data.write('\r')
-        self.note_data.write('B_median')
-        self.note_data.write(str(B_median_dict))
-        self.note_data.write('\r')
-        self.note_data.write('GR_median')
-        self.note_data.write(str(GR_median_dict))
-        self.note_data.write('\r')
-        self.note_data.write('GB_median')
-        self.note_data.write(str(GB_median_dict))
-        self.note_data.write('\r')
-        self.note_data.write('R_stdev')
-        self.note_data.write(str(R_stdev_dict))
-        self.note_data.write('\r')
-        self.note_data.write('B_stdev')
-        self.note_data.write(str(B_stdev_dict))
-        self.note_data.write('\r')
-        self.note_data.write('GR_stdev')
-        self.note_data.write(str(GR_stdev_dict))
-        self.note_data.write('\r')
-        self.note_data.write('GB_stdev')
-        self.note_data.write(str(GB_stdev_dict))
-        self.note_data.write('\r')
-        self.note_data.close()  # close is saving
+        # write to excel
+        Data_name = [self.x_axis_label, 'R_ave', 'B_ave', 'GR_ave', 'GB_ave', 'R_median', 'B_median', 'GR_median',
+                     'GB_median', 'R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev']
+        title_name = {"name": Data_name}
+        df = pd.DataFrame(title_name, columns=Data_name)
+        df.loc[:, Data_name[0]] = self.labels
+        df.loc[:, Data_name[1]] = R_ave_list
+        df.loc[:, Data_name[2]] = B_ave_list
+        df.loc[:, Data_name[3]] = GR_ave_list
+        df.loc[:, Data_name[4]] = GB_ave_list
+        df.loc[:, Data_name[5]] = R_median_list
+        df.loc[:, Data_name[6]] = B_median_list
+        df.loc[:, Data_name[7]] = GR_median_list
+        df.loc[:, Data_name[8]] = GB_median_list
+        df.loc[:, Data_name[9]] = R_stdev_list
+        df.loc[:, Data_name[10]] = B_stdev_list
+        df.loc[:, Data_name[11]] = GR_stdev_list
+        df.loc[:, Data_name[12]] = GB_stdev_list
+        note_path = str(self.file_path + '/Note_data_' + time.strftime("%Y%m%d%H%M%S", time.localtime()) + '.xlsx')
+        df.to_excel(note_path)
         fig = plt.figure(figsize=(25, 20))
         # fig.autofmt_xdate()
         # x = list(range(len(self.R_ave_list)))
-        # my_x_ticks = np.arange(self.light_list[0], 50, self.light_list[-1])
         # plt.xticks(my_x_ticks)
         # plt.legend(loc='upper left', ncol=1)  # 图例及位置： 1右上角，2 左上角 loc函数可不写 0为最优 ncol为标签有几列
         ##################################################################
         Average = fig.add_subplot(3, 1, 1)
-        plt.xlabel("Light Intensity")
+        plt.xlabel(self.x_axis_label)
         plt.ylabel("Average Value")
-        plt.title("RGB & Light Intensity")
+        plt.title("RGB & " + self.x_axis_label)
         # for i in range(len(self.R_ave_list)):
         #     Average.plot(x, R_ave_list, color='r', marker='o')
         #     Average.plot(x, B_ave_list, color='b', marker='v')
@@ -513,13 +505,13 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         y = [i for i in GB_ave_dict.values()]
         plt.plot(x, y, color='mediumseagreen', label='GB_ave', marker='d')
         plt.legend(['R_ave', 'B_ave', 'GR_ave', 'GB_ave'], loc='upper left')
-        plt.xticks(self.light_list, self.light_list, rotation=270)
+        plt.xticks(self.ticks, self.labels, rotation=270)
         ################################################################
         Median = fig.add_subplot(3, 1, 2)
         x = list(range(len(R_median_list)))
-        plt.xlabel("Light Intensity")
+        plt.xlabel(self.x_axis_label)
         plt.ylabel("Median Value")
-        plt.title("RGB & Light Intensity")
+        plt.title("RGB & " + self.x_axis_label)
         # for i in range(len(R_median_list)):
         #     Median.plot(x, R_median_list, color='r')
         #     Median.plot(x, B_median_list, color='b')
@@ -538,13 +530,13 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         y = [i for i in GB_median_dict.values()]
         plt.plot(x, y, color='mediumseagreen', label='GB_median', marker='d')
         plt.legend(['R_median', 'B_median', 'GR_median', 'GB_median'], loc='upper left')
-        plt.xticks(self.light_list, self.light_list, rotation=270)
+        plt.xticks(self.ticks, self.labels, rotation=270)
         ##################################################################
         x = list(range(len(R_stdev_list)))
         Stdev = fig.add_subplot(3, 1, 3)
-        plt.xlabel("Light Intensity")
+        plt.xlabel(self.x_axis_label)
         plt.ylabel("Standard Deviation  Value")
-        plt.title("RGB & Light Intensity")
+        plt.title("RGB & " + self.x_axis_label)
         # for i in range(len(R_stdev_list)):
         #     Stdev.plot(x, R_stdev_list, color='r')
         #     Stdev.plot(x, B_stdev_list, color='b')
@@ -563,7 +555,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         y = [i for i in GB_stdev_dict.values()]
         plt.plot(x, y, color='mediumseagreen', label='GB_stdev', marker='d')
         plt.legend(['R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev'], loc='upper left')
-        plt.xticks(self.light_list, self.light_list, rotation=270)
+        plt.xticks(self.ticks, self.labels, rotation=270)
 
         plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
         plt.show()
@@ -575,11 +567,14 @@ if __name__ == '__main__':
     myWindow.show()
     sys.exit(app.exec_())
 
-
-    # Data_name = ['Light Intensity', 'R_ave', 'B_ave', 'GR_ave', 'GB_ave', 'R_median', 'B_median', 'GR_median',
+    # verial = 'Light Intensity'
+    # Data_name = [verial, 'R_ave', 'B_ave', 'GR_ave', 'GB_ave', 'R_median', 'B_median', 'GR_median',
     #              'GB_median', 'R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev']
+    # R_ave = [1,2,3,4,5,6,7]
     # c = {"name": Data_name}
-    # df = pd.DataFrame(c,columns=['name'])
+    # df = pd.DataFrame(c, columns=Data_name)
+    # df.loc[:, Data_name[0]] = R_ave
+    # df.to_excel(r'.\pandas.xlsx')
     # print(df)
     # imgData = np.fromfile(try_raw_path, dtype=np.uint16)
     # total_pixels = imgData[0:5515040]
