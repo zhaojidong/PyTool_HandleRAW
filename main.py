@@ -164,7 +164,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         slice_end = rows * cols
         Frame_count = 32
         RGB_Result_list = []
-        raw_sum = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
+        raw_sum = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint64)
         # raw_stdev = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
         # raw_median = np.zeros((AREA[2] - AREA[0], AREA[3] - AREA[1]), dtype=np.uint16)
         frame_list = list()
@@ -182,7 +182,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
             if file_loop == 0:
                 self.first_raw = choose_pixels
             ###################################################################
-            # use two dimensional list to note the every pixel value
+            # use two dimensional list([[32 data, because 32 frame]every pixel for single frame ]) to note the every pixel value
             ###################################################################
             xy_axis = 0
             for x_axis in range(AREA[2] - AREA[0]):
@@ -257,9 +257,8 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         raw_stdev = 0
         for file_loop in range(len(raw_file_list)):
             raw_file = file_path + '\\' + raw_file_list[file_loop]
-            total_pixels = np.fromfile(raw_file, dtype=np.uint16)
-            total_pixels = total_pixels[slice_start:slice_end + Frame_count]
-            total_pixels = total_pixels.reshape(rows, cols)
+            total_pixels = np.fromfile(raw_file, dtype='>u2')
+            total_pixels = np.reshape(np.right_shift(total_pixels[slice_start:], 2), [rows, cols])
             # choose the partial area
             choose_pixels = total_pixels[(AREA[0]):(AREA[2]), (AREA[1]):(AREA[3])]
             raw_stdev = raw_stdev + (self.raw_ave - choose_pixels) ** 2
@@ -411,7 +410,7 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         B_stdev_dict = {}
         GR_stdev_dict = {}
         GB_stdev_dict = {}
-        # merge two list
+        # merge two list(x is Light Intensity, y is the measured value)
         for i, j in zip(self.light_list, R_ave_list):
             R_ave_dict[i] = j
         for i, j in zip(self.light_list, B_ave_list):
@@ -455,13 +454,13 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         plt.plot(x, y, color='r', label='R_ave', marker='o')
         x = [i for i in B_ave_dict.keys()]
         y = [i for i in B_ave_dict.values()]
-        plt.plot(x, y, color='b', label='B_ave', marker='o')
+        plt.plot(x, y, color='b', label='B_ave', marker='v')
         x = [i for i in GR_ave_dict.keys()]
         y = [i for i in GR_ave_dict.values()]
-        plt.plot(x, y, color='gold', label='GR_ave', marker='o')
+        plt.plot(x, y, color='gold', label='GR_ave', marker='p')
         x = [i for i in GB_ave_dict.keys()]
         y = [i for i in GB_ave_dict.values()]
-        plt.plot(x, y, color='mediumseagreen', label='GB_ave', marker='o')
+        plt.plot(x, y, color='mediumseagreen', label='GB_ave', marker='d')
         plt.legend(['R_ave', 'B_ave', 'GR_ave', 'GB_ave'], loc='upper left')  #
         ################################################################
         Median = fig.add_subplot(3, 1, 2)
@@ -476,16 +475,16 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         #     Median.plot(x, GB_median_list, color='mediumseagreen')
         x = [i for i in R_median_dict.keys()]
         y = [i for i in R_median_dict.values()]
-        plt.plot(x, y, color='r', label='R_median', marker='*')
+        plt.plot(x, y, color='r', label='R_median', marker='o')
         x = [i for i in B_median_dict.keys()]
         y = [i for i in B_median_dict.values()]
-        plt.plot(x, y, color='b', label='B_median', marker='*')
+        plt.plot(x, y, color='b', label='B_median', marker='v')
         x = [i for i in GR_median_dict.keys()]
         y = [i for i in GR_median_dict.values()]
-        plt.plot(x, y, color='gold', label='GR_median', marker='*')
+        plt.plot(x, y, color='gold', label='GR_median', marker='p')
         x = [i for i in GB_median_dict.keys()]
         y = [i for i in GB_median_dict.values()]
-        plt.plot(x, y, color='mediumseagreen', label='GB_median', marker='*')
+        plt.plot(x, y, color='mediumseagreen', label='GB_median', marker='d')
         plt.legend(['R_median', 'B_median', 'GR_median', 'GB_median'], loc='upper left')
         ##################################################################
         x = list(range(len(R_stdev_list)))
@@ -500,16 +499,16 @@ class HandleRAW_UI(QMainWindow, Ui_MainWindow):
         #     Stdev.plot(x, GB_stdev_list, color='mediumseagreen')
         x = [i for i in R_stdev_dict.keys()]
         y = [i for i in R_stdev_dict.values()]
-        plt.plot(x, y, color='r', label='R_stdev', marker='+')
+        plt.plot(x, y, color='r', label='R_stdev', marker='o')
         x = [i for i in B_stdev_dict.keys()]
         y = [i for i in B_stdev_dict.values()]
-        plt.plot(x, y, color='b', label='B_stdev', marker='+')
+        plt.plot(x, y, color='b', label='B_stdev', marker='v')
         x = [i for i in GR_stdev_dict.keys()]
         y = [i for i in GR_stdev_dict.values()]
-        plt.plot(x, y, color='gold', label='GR_stdev', marker='+')
+        plt.plot(x, y, color='gold', label='GR_stdev', marker='p')
         x = [i for i in GB_stdev_dict.keys()]
         y = [i for i in GB_stdev_dict.values()]
-        plt.plot(x, y, color='mediumseagreen', label='GB_stdev', marker='+')
+        plt.plot(x, y, color='mediumseagreen', label='GB_stdev', marker='d')
         plt.legend(['R_stdev', 'B_stdev', 'GR_stdev', 'GB_stdev'], loc='upper left')
 
         plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.5)
