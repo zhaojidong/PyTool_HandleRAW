@@ -1,0 +1,31 @@
+%YAML:1.0
+---
+Camera Model: 1811
+SDK Version: ""
+CFPGA Version: ""
+UFPGA Version: ""
+IFPGA Version: ""
+HscVideoClipInfo:
+   VideoClip ID: 0
+   Time Stamp: "1650970487"
+   Frame Number: 32
+   Color Mode: 1
+   Camera Window Rect:
+      ROI X: 0
+      ROI Y: 0
+      ROI Width: 2672
+      ROI Height: 2064
+   Channels: 1
+   Bits Per Pixel: 14
+   Max Sensor Width: 2672
+   Max Sensor Height: 2064
+   Max Display Width: 2672
+   Max Display Height: 2064
+Camera Settings:
+   Rotation Type: 0
+   FPS: 62
+   Exposure Time: 16000
+   Display Highest Bit: 8
+   Enable VFPN Compensate: 0
+   Enable HOB Compensate: 0
+   Enable Median Blur: 0

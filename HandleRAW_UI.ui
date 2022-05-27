@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1446</width>
-    <height>1039</height>
+    <width>854</width>
+    <height>855</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,38 +38,12 @@
    <widget class="QTextEdit" name="textEdit">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>176</y>
+      <x>410</x>
+      <y>20</y>
       <width>431</width>
-      <height>801</height>
+      <height>781</height>
      </rect>
     </property>
-   </widget>
-   <widget class="QGroupBox" name="groupBox">
-    <property name="geometry">
-     <rect>
-      <x>450</x>
-      <y>10</y>
-      <width>991</width>
-      <height>971</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Image</string>
-    </property>
-    <widget class="QLabel" name="label">
-     <property name="geometry">
-      <rect>
-       <x>40</x>
-       <y>30</y>
-       <width>72</width>
-       <height>15</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>TextLabel</string>
-     </property>
-    </widget>
    </widget>
    <widget class="QPushButton" name="plot_wave">
     <property name="geometry">
@@ -125,13 +99,26 @@
      </size>
     </property>
    </widget>
+   <widget class="QGroupBox" name="groupBox">
+    <property name="geometry">
+     <rect>
+      <x>400</x>
+      <y>0</y>
+      <width>451</width>
+      <height>801</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>MESSAGE:</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1446</width>
+     <width>854</width>
      <height>26</height>
     </rect>
    </property>
